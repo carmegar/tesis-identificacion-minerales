@@ -3,29 +3,33 @@ name: Python application
 on:
   push:
     branches:
-      - main  # Ejecutar en cada push a la rama principal
+      - main
   pull_request:
     branches:
-      - main  # Ejecutar en cada pull request hacia la rama principal
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Utilizar un entorno Linux para la ejecución
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3  # Descargar el código del repositorio
+      uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v4  # Instalar Python
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.11'  # Versión de Python requerida
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt  # Instalar las dependencias
+        pip install -r requirements.txt
+
+    - name: Check pytest installation
+      run: |
+        python -m pytest --version
 
     - name: Run tests
       run: |
-        pytest  # Ejecutar las pruebas con pytest
+        pytest
