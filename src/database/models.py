@@ -1,6 +1,8 @@
 # src/database/models.py
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
-from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION
+import json
+
+from sqlalchemy import (Column, DateTime, ForeignKey, Integer, String, Text,
+                        func)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -19,15 +21,26 @@ class Muestra(Base):
 
     # Relación con la tabla de espectros vectorizados
     espectro_vector = relationship("EspectroVectorizado", uselist=False, back_populates="muestra")
-    # uselist=False indica que esperamos un único vector por muestra;
-    # si quisieras varios vectores por muestra, podrías usar True o un Array de vectores.
 
 class EspectroVectorizado(Base):
     __tablename__ = "espectros_vectorizados"
 
     id = Column(Integer, primary_key=True, index=True)
     muestra_id = Column(Integer, ForeignKey("muestras.id"))
-    # Almacenamos el vector como un ARRAY de doubles
-    vector = Column(ARRAY(DOUBLE_PRECISION), nullable=False)
+    # Almacenamos el vector como JSON string (compatible con SQLite)
+    vector_json = Column(Text, nullable=False)
 
     muestra = relationship("Muestra", back_populates="espectro_vector")
+
+    @property
+    def vector(self):
+        """Convierte el JSON string de vuelta a lista de números."""
+        return json.loads(self.vector_json)
+
+    @vector.setter
+    def vector(self, value):
+        """Convierte la lista/array de números a JSON string."""
+        import numpy as np
+        if isinstance(value, np.ndarray):
+            value = value.tolist()
+        self.vector_json = json.dumps(value)

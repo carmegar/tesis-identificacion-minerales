@@ -1,54 +1,117 @@
-# src/analysis/vectorize.py
 import cv2
 import numpy as np
 
 
-def vectorize_spectrum(image_path, vector_size=200):
-    """
-    Procesa la imagen del espectro, detecta la línea roja y la convierte en un vector de longitud 'vector_size'.
-    Devuelve un numpy array de floats normalizados (rango 0-1 o norma unitaria).
-    """
-    # 1. Lee la imagen
+def read_image_float(image_path):
+    """Lee una imagen y la convierte a formato float normalizado."""
     img = cv2.imread(image_path)
-
     if img is None:
-        raise ValueError(f"No se pudo leer la imagen en {image_path}")
+        return None
+    if len(img.shape) == 2 or img.shape[2] == 1:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    img = img.astype(np.float32) / 255.0
+    return img
 
-    # 2. Convertir a espacio HSV (u otro) para aislar color rojo
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-    # Máscara para color rojo (esto es un ejemplo; hay que ajustar rangos)
-    lower_red1 = np.array([0, 70, 70])
-    upper_red1 = np.array([10, 255, 255])
-    mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+def preprocess_image(img):
+    """Aplica filtro Gaussiano para suavizar la imagen."""
+    return cv2.GaussianBlur(img, (5, 5), 0)
 
-    lower_red2 = np.array([170, 70, 70])
-    upper_red2 = np.array([180, 255, 255])
-    mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
 
-    mask = mask1 | mask2
+def convert_to_grayscale(img):
+    """Convierte imagen a escala de grises."""
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # 3. Queremos proyectar la intensidad horizontalmente para formar un vector
-    # Suponiendo que el espectro va de izquierda (0 keV) a derecha (10 keV)
-    # Sumamos máscara por filas o columnas, según la orientación
-    # Aquí sumamos por columnas (axis=0) para obtener un perfil horizontal
-    horizontal_profile = np.sum(mask, axis=0)  # shape -> (width,)
 
-    # 4. Redimensionamos a vector_size usando interpolación
-    # (Podríamos usar np.interp o cv2.resize)
-    # horizontal_profile es 1D; convertimos a 2D para usar cv2.resize
-    hp_2d = np.expand_dims(horizontal_profile, axis=0)  # shape (1, width)
-    target_size = (vector_size, 1)  # Queremos 'vector_size' de ancho
-    resized = cv2.resize(hp_2d, target_size, interpolation=cv2.INTER_AREA)  # (1, vector_size)
+def extract_mask(gray, threshold=0.99):
+    """Crea máscara binaria basada en umbralización."""
+    mask = (gray < threshold).astype(np.uint8) * 255
+    return mask
 
-    # Convertimos de nuevo a 1D
-    spectrum_vector = resized.flatten().astype(float)
 
-    # 5. Normalizar (norma L2 para que la magnitud total sea 1)
-    norm = np.linalg.norm(spectrum_vector)
+def crop_mask(mask, row_bounds=None):
+    """Recorta la máscara a la región de interés."""
+    # Recorte horizontal
+    col_sum = np.sum(mask, axis=0)
+    nonzero_cols = np.where(col_sum > 0)[0]
+    if nonzero_cols.size == 0:
+        col_start, col_end = 0, mask.shape[1]
+    else:
+        col_start = nonzero_cols[0]
+        col_end = nonzero_cols[-1] + 1
+
+    # Recorte vertical: usa row_bounds si se proporciona
+    if row_bounds is not None:
+        row_start, row_end = row_bounds
+    else:
+        row_sum = np.sum(mask, axis=1)
+        nonzero_rows = np.where(row_sum > 0)[0]
+        if nonzero_rows.size == 0:
+            row_start, row_end = 0, mask.shape[0]
+        else:
+            row_start = nonzero_rows[0]
+            row_end = nonzero_rows[-1] + 1
+
+    mask_cropped = mask[row_start:row_end, col_start:col_end]
+    return mask_cropped, row_start, row_end, col_start, col_end
+
+
+def compute_signature(mask_cropped, method="mean"):
+    """Calcula la firma del espectro."""
+    if method == "max":
+        signature = np.max(mask_cropped, axis=0)
+    else:
+        signature = np.mean(mask_cropped, axis=0)
+    return signature
+
+
+def resize_signature(signature, vector_size=200):
+    """Redimensiona la firma a un vector de tamaño fijo."""
+    if signature.size == 0:
+        return None
+    x_old = np.arange(signature.size)
+    x_new = np.linspace(0, signature.size - 1, vector_size)
+    resized = np.interp(x_new, x_old, signature)
+    return resized.astype(np.float32)
+
+
+def normalize_vector(vec):
+    """Normaliza el vector usando norma L2."""
+    norm = np.linalg.norm(vec)
     if norm == 0:
-        # Evitar división por cero
-        return np.zeros(vector_size, dtype=float)
-    normalized_vector = spectrum_vector / norm
+        return None
+    normalized = vec / norm
+    return normalized
 
-    return normalized_vector
+
+def vectorize_spectrum(image_path, vector_size=200, threshold=0.99, row_bounds=(150,250), method="mean"):
+    """
+    Pipeline completo de vectorización de espectros EDS.
+    
+    Args:
+        image_path: Ruta a la imagen del espectro
+        vector_size: Tamaño final del vector (default: 200)
+        threshold: Umbral para binarización (default: 0.99)
+        row_bounds: Límites de filas para recorte (default: (150,250))
+        method: Método de cálculo de firma ("mean" o "max")
+    
+    Returns:
+        numpy.array: Vector normalizado del espectro o None si falla
+    """
+    # Pipeline de procesamiento
+    img = read_image_float(image_path)
+    if img is None:
+        return None
+        
+    img = preprocess_image(img)
+    gray = convert_to_grayscale(img)
+    mask = extract_mask(gray, threshold=threshold)
+    mask_cropped, r_st, r_ed, c_st, c_ed = crop_mask(mask, row_bounds=row_bounds)
+    signature = compute_signature(mask_cropped, method=method)
+    resized_sig = resize_signature(signature, vector_size=vector_size)
+    
+    if resized_sig is None:
+        return None
+        
+    normalized_sig = normalize_vector(resized_sig)
+    return normalized_sig

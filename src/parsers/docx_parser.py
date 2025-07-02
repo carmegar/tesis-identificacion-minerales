@@ -1,34 +1,58 @@
 # src/parsers/docx_parser.py
+
 import os
 import uuid
 
+import cv2
 from docx import Document
 
+from src.analysis.vectorize import vectorize_spectrum
 
-def extract_spectrum_image(docx_path, images_folder="data/images"):
+
+def extract_and_vectorize_spectrum(docx_path, vector_size=200, temp_folder="data/temp_images"):
     """
-    Lee el archivo .docx, extrae la primera imagen (asumiendo que es el espectro)
-    y la guarda en images_folder. Retorna la ruta a la imagen extraída.
+    1. Extrae todas las imágenes de docx_path y las guarda temporalmente en temp_folder.
+    2. Busca la imagen con shape (400, 512, 3) (la de tu espectro).
+    3. Vectoriza esa imagen usando vectorize_spectrum.
+    4. Borra todas las imágenes extraídas.
+    5. Retorna el vector si la encontró, o None si no la halló.
+
+    Requiere:
+      - La función vectorize_spectrum en src/analysis/vectorize.py
+      - docx y opencv instalados.
     """
+
+    # 1. Abrir el documento .docx
     doc = Document(docx_path)
 
-    # Asegurarnos de que la carpeta de imágenes existe
-    if not os.path.exists(images_folder):
-        os.makedirs(images_folder)
+    # Crear la carpeta temporal si no existe
+    if not os.path.exists(temp_folder):
+        os.makedirs(temp_folder)
 
-    extracted_image_path = None
-    for shape in doc.inline_shapes:
-        rId = shape._inline.graphic.graphicData.pic.blipFill.blip.embed
-        image_part = doc.part.related_parts[rId]
-        image_bytes = image_part.blob
+    extracted_paths = []
 
-        new_image_name = f"spectrum_{uuid.uuid4()}.png"
-        extracted_image_path = os.path.join(images_folder, new_image_name)
+    # 2. Recorrer todas las relaciones para extraer imágenes
+    for rel in doc.part.rels.values():
+        if "image" in rel.target_ref:
+            out_filename = f"docimg_{uuid.uuid4()}.png"
+            out_path = os.path.join(temp_folder, out_filename)
+            with open(out_path, "wb") as f:
+                f.write(rel.target_part.blob)
+            extracted_paths.append(out_path)
 
-        with open(extracted_image_path, "wb") as f:
-            f.write(image_bytes)
+    # 3. Buscar la imagen con shape (400,512,3)
+    chosen_vector = None
+    for img_path in extracted_paths:
+        img = cv2.imread(img_path)
+        if img is not None and img.shape == (400, 512, 3):
+            # Vectorizar de inmediato
+            chosen_vector = vectorize_spectrum(img_path, vector_size=vector_size)
+            # Ya no buscamos más, rompe el bucle
+            break
 
-        # Solo extraemos la primera imagen
-        break
+    # 4. Borrar todas las imágenes extraídas
+    for img_path in extracted_paths:
+        os.remove(img_path)
 
-    return extracted_image_path
+    # 5. Devolver el vector (None si no encontró la imagen con shape (400,512,3))
+    return chosen_vector

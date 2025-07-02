@@ -1,11 +1,66 @@
-# Python
-*.pyc
+# Archivos de Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Entornos virtuales
-env/
 venv/
+env/
+ENV/
+.env
+.venv
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+minerales_eds.db
+
+# Archivos temporales del sistema
+data/temp_images/
+data/images/debug_*
+data/images/mask_*
+*.tmp
+*.temp
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # Archivos de sistema
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Streamlit
+.streamlit/

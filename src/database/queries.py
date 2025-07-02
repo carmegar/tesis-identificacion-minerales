@@ -1,4 +1,7 @@
 # src/database/queries.py
+import json
+
+import numpy as np
 from sqlalchemy.orm import Session
 
 from .connection import SessionLocal, engine
@@ -8,7 +11,7 @@ from .models import Base, EspectroVectorizado, Muestra
 def create_tables():
     Base.metadata.create_all(bind=engine)
 
-def insert_muestra(session: Session, nombre_muestra: str, investigador: str, ruta_imagen: str):
+def insert_muestra(session: Session, nombre_muestra: str, investigador: str = None, ruta_imagen: str = None):
     nueva = Muestra(
         nombre_muestra=nombre_muestra,
         investigador=investigador,
@@ -24,10 +27,8 @@ def insert_espectro(session: Session, muestra_id: int, vector):
     Crea un EspectroVectorizado asociado a la muestra y retorna el objeto.
     'vector' debe ser una lista (o np.array) con floats normalizados.
     """
-    e = EspectroVectorizado(
-        muestra_id=muestra_id,
-        vector=vector
-    )
+    e = EspectroVectorizado(muestra_id=muestra_id)
+    e.vector = vector  # Usa el setter que convierte a JSON
     session.add(e)
     session.commit()
     session.refresh(e)
@@ -41,3 +42,11 @@ def get_muestra_by_id(session: Session, muestra_id: int):
 
 def get_espectro_by_muestra_id(session: Session, muestra_id: int):
     return session.query(EspectroVectorizado).filter_by(muestra_id=muestra_id).first()
+
+def count_muestras(session: Session):
+    """Retorna el número total de muestras en la base de datos."""
+    return session.query(Muestra).count()
+
+def get_all_muestras_with_vectors(session: Session):
+    """Retorna todas las muestras que tienen vectores asociados."""
+    return session.query(Muestra).join(EspectroVectorizado).all()
