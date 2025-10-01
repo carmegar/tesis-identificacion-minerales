@@ -50,3 +50,33 @@ def count_muestras(session: Session):
 def get_all_muestras_with_vectors(session: Session):
     """Retorna todas las muestras que tienen vectores asociados."""
     return session.query(Muestra).join(EspectroVectorizado).all()
+
+def update_muestra(session: Session, muestra_id: int, nombre_muestra: str = None, investigador: str = None):
+    """Actualiza los campos de una muestra existente."""
+    muestra = session.query(Muestra).filter(Muestra.id == muestra_id).first()
+    if not muestra:
+        return None
+    
+    if nombre_muestra is not None:
+        muestra.nombre_muestra = nombre_muestra
+    if investigador is not None:
+        muestra.investigador = investigador
+    
+    session.commit()
+    session.refresh(muestra)
+    return muestra
+
+def delete_muestra(session: Session, muestra_id: int):
+    """Elimina una muestra y su espectro asociado de la base de datos."""
+    # Primero eliminar el espectro asociado
+    espectro = session.query(EspectroVectorizado).filter_by(muestra_id=muestra_id).first()
+    if espectro:
+        session.delete(espectro)
+    
+    # Luego eliminar la muestra
+    muestra = session.query(Muestra).filter(Muestra.id == muestra_id).first()
+    if muestra:
+        session.delete(muestra)
+        session.commit()
+        return True
+    return False

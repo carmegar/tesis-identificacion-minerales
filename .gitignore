@@ -64,3 +64,28 @@ htmlcov/
 
 # Streamlit
 .streamlit/
+
+# Documentación y archivos de desarrollo (no necesarios para producción)
+DOCUMENTACION_APLICATIVO.md
+TESTING_REPORT.md
+AJUSTES_PLAN_TESIS.md
+kpi.txt
+pasos.txt
+*.pdf
+plan*.pdf
+
+# Scripts de desarrollo
+pytest.ini
+run_tests.py
+setup_mvp.py
+populate_database.py
+verify_system.py
+
+# Tests (solo para desarrollo)
+tests/
+
+# Claude AI
+.claude/
+
+# Archivos temporales
+nul
