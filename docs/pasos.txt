@@ -1,0 +1,37 @@
+================================================================================
+PLAN PARA MÉTRICAS FALTANTES
+================================================================================
+
+1. PREPARACIÓN DATOS (30 min)
+--------------------------------------------------------------------------------
+- Separar ~20 muestras actuales como "conjunto de validación"
+- Crear archivo CSV con etiquetas verdaderas (mineral real de cada muestra)
+
+2. SCRIPT VALIDACIÓN (1 hora)
+--------------------------------------------------------------------------------
+- Crear `validate_system.py` que:
+  - Procese cada muestra del conjunto validación
+  - Compare predicción vs etiqueta real
+  - Calcule: Accuracy, Precision, Recall, F1-Score
+  - Genere matriz de confusión
+
+3. EJECUTAR Y RECOLECTAR (15 min)
+--------------------------------------------------------------------------------
+- Correr script sobre las 20 muestras
+- Guardar resultados en JSON/CSV
+
+4. VISUALIZACIÓN (30 min)
+--------------------------------------------------------------------------------
+- Gráficos: matriz confusión, barras por rango similitud
+- Tabla resumen métricas por mineral
+
+5. DOCUMENTAR (30 min)
+--------------------------------------------------------------------------------
+- Agregar a TESTING_REPORT.md
+- KPIs para documento tesis
+
+================================================================================
+TOTAL: ~2.5 horas
+================================================================================
+
+¿Procedo a implementar?

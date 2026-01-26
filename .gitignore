@@ -27,11 +27,10 @@ ENV/
 .env
 .venv
 
-# Base de datos
+# Base de datos (se genera localmente)
 *.db
 *.sqlite
 *.sqlite3
-minerales_eds.db
 
 # Archivos temporales del sistema
 data/temp_images/
@@ -61,31 +60,25 @@ logs/
 .coverage
 htmlcov/
 .tox/
+pytest.ini
 
 # Streamlit
 .streamlit/
 
-# Documentación y archivos de desarrollo (no necesarios para producción)
-DOCUMENTACION_APLICATIVO.md
-TESTING_REPORT.md
-AJUSTES_PLAN_TESIS.md
-kpi.txt
-pasos.txt
-*.pdf
-plan*.pdf
-
-# Scripts de desarrollo
-pytest.ini
-run_tests.py
-setup_mvp.py
-populate_database.py
-verify_system.py
-
-# Tests (solo para desarrollo)
-tests/
-
 # Claude AI
 .claude/
 
-# Archivos temporales
-nul
+# Resultados de validacion (generados localmente)
+validation_results*.json
+
+# Archivos JSON generados
+diagramas/*.json
+
+# Datos de prueba (archivos DOCX grandes)
+tests/test_data/
+
+# Espectros externos (datos de validacion)
+espectros_externos/
+
+# Muestras de datos (archivos DOCX originales)
+muestrasdatos/
